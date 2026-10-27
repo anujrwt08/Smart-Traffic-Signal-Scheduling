@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Traffic Control</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <script src="script.js" defer></script>
+</head>
+<body>
+    <header class="topbar">
+        <div class="brand">
+            <span class="brand-mark" aria-hidden="true"></span>
+            <h1>Trafficflow</h1>
+        </div>
+        <div class="system-status">
+            <span class="status-dot"></span>
+            <span id="systemStatus">Connecting to C engine</span>
+        </div>
+    </header>
+
+    <main class="dashboard">
+        <section class="intro">
+            <h2>Four-way intersection, scheduled greedily</h2>
+            <p>Set how many vehicles are waiting on each road, then step through the signal decisions the C engine makes.</p>
+        </section>
+
+        <section class="stats">
+            <div class="stat"><span class="stat-label">Vehicles waiting</span><span class="stat-value" id="totalVehicles">65</span></div>
+            <div class="stat"><span class="stat-label">Vehicles served</span><span class="stat-value" id="servedVehicles">0</span></div>
+            <div class="stat"><span class="stat-label">Rounds completed</span><span class="stat-value" id="roundCount">0</span></div>
+            <div class="stat"><span class="stat-label">Green light</span><span class="stat-value" id="activeDirection">None</span></div>
+        </section>
+
+        <section class="main-grid">
+            <article class="panel plate-panel">
+                <div class="intersection-wrap">
+                    <div class="direction-label label-north">North <span id="mapCount0">30</span></div>
+                    <div class="direction-label label-south">South <span id="mapCount1">20</span></div>
+                    <div class="direction-label label-east">East <span id="mapCount2">10</span></div>
+                    <div class="direction-label label-west">West <span id="mapCount3">5</span></div>
+
+                    <div class="intersection" id="intersection">
+                        <div class="road road-vertical"></div>
+                        <div class="road road-horizontal"></div>
+                        <div class="road-lines vertical-lines"></div>
+                        <div class="road-lines horizontal-lines"></div>
+
+                        <div class="lane-arrows arrow-north">↓</div>
+                        <div class="lane-arrows arrow-south">↑</div>
+                        <div class="lane-arrows arrow-east">←</div>
+                        <div class="lane-arrows arrow-west">→</div>
+
+                        <div id="vehicleLayer"></div>
+
+                        <div class="signal signal-north" id="signal0">
+                            <span class="light red active" id="red0"></span>
+                            <span class="light yellow" id="yellow0"></span>
+                            <span class="light green" id="green0"></span>
+                        </div>
+                        <div class="signal signal-south" id="signal1">
+                            <span class="light red active" id="red1"></span>
+                            <span class="light yellow" id="yellow1"></span>
+                            <span class="light green" id="green1"></span>
+                        </div>
+                        <div class="signal signal-east" id="signal2">
+                            <span class="light red active" id="red2"></span>
+                            <span class="light yellow" id="yellow2"></span>
+                            <span class="light green" id="green2"></span>
+                        </div>
+                        <div class="signal signal-west" id="signal3">
+                            <span class="light red active" id="red3"></span>
+                            <span class="light yellow" id="yellow3"></span>
+                            <span class="light green" id="green3"></span>
+                        </div>
+
+                        <div class="cross-center">Junction</div>
+                    </div>
+                </div>
+                <div class="intersection-legend">
+                    <span><i class="legend-dot red-dot"></i>Stop</span>
+                    <span><i class="legend-dot yellow-dot"></i>Prepare</span>
+                    <span><i class="legend-dot green-dot"></i>Go</span>
+                </div>
+            </article>
+
+            <article class="panel control-panel">
+                <h3>Waiting vehicles</h3>
+                <p class="muted">Enter a whole number from 0 to 10000 for each road.</p>
+
+                <div class="input-grid">
+                    <label class="traffic-input north-input"><span><i></i>North</span>
+                        <input type="number" id="northInput" min="0" max="10000" value="30"></label>
+                    <label class="traffic-input south-input"><span><i></i>South</span>
+                        <input type="number" id="southInput" min="0" max="10000" value="20"></label>
+                    <label class="traffic-input east-input"><span><i></i>East</span>
+                        <input type="number" id="eastInput" min="0" max="10000" value="10"></label>
+                    <label class="traffic-input west-input"><span><i></i>West</span>
+                        <input type="number" id="westInput" min="0" max="10000" value="5"></label>
+                </div>
+
+                <button class="btn btn-secondary" id="applyBtn">Apply vehicle counts</button>
+
+                <div class="control-heading">
+                    <h4>Simulation</h4>
+                    <span id="simulationState" class="state-label">Ready</span>
+                </div>
+
+                <button class="btn btn-primary" id="nextBtn">Next scheduling round</button>
+                <button class="btn btn-run" id="runBtn">Run full simulation</button>
+                <button class="btn btn-reset" id="resetBtn">Reset</button>
+
+                <p class="tip">Each round, the C program picks the road with the highest priority score. Roads left waiting gain priority so none is starved.</p>
+            </article>
+        </section>
+
+        <section class="bottom-grid">
+            <article class="panel">
+                <h3>Queues</h3>
+                <div class="queue-list">
+                    <div class="queue-row"><span class="queue-name"><span class="lane-dot north-dot"></span>North</span>
+                        <div class="queue-track"><div class="queue-fill north-fill" id="bar0"></div></div><strong id="queue0">30</strong></div>
+                    <div class="queue-row"><span class="queue-name"><span class="lane-dot south-dot"></span>South</span>
+                        <div class="queue-track"><div class="queue-fill south-fill" id="bar1"></div></div><strong id="queue1">20</strong></div>
+                    <div class="queue-row"><span class="queue-name"><span class="lane-dot east-dot"></span>East</span>
+                        <div class="queue-track"><div class="queue-fill east-fill" id="bar2"></div></div><strong id="queue2">10</strong></div>
+                    <div class="queue-row"><span class="queue-name"><span class="lane-dot west-dot"></span>West</span>
+                        <div class="queue-track"><div class="queue-fill west-fill" id="bar3"></div></div><strong id="queue3">5</strong></div>
+                </div>
+            </article>
+
+            <article class="panel">
+                <h3>Current decision</h3>
+                <div class="decision-direction" id="decisionDirection">Waiting for first round</div>
+                <dl class="decision-metrics">
+                    <div><dt>Priority score</dt><dd id="priorityScore">—</dd></div>
+                    <div><dt>Green time</dt><dd id="greenDuration">—</dd></div>
+                    <div><dt>Vehicles served</dt><dd id="roundServed">—</dd></div>
+                </dl>
+                <p class="muted" id="decisionMessage">Apply your counts, then start a round to see the engine's choice.</p>
+            </article>
+
+            <article class="panel history-panel">
+                <h3>Scheduling history</h3>
+                <div id="historyList" class="history-list">
+                    <div class="empty-history">No scheduling rounds yet.</div>
+                </div>
+            </article>
+        </section>
+
+        <footer>
+            <span>Trafficflow, a greedy algorithm project for DAA</span>
+            <span>HTML, CSS, JavaScript, Python, C</span>
+        </footer>
+    </main>
+</body>
+</html>
